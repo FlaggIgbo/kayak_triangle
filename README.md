@@ -25,7 +25,7 @@ pip install -r requirements.txt
 ```
 Here is an example command line input: 
 ```
-python3 flights.py --start NYC --start-date 2023-02-02 --end SFO --end-date 2023-03-03 --alliance ALL
+python3 flights.py --start JFK --start-date 2023-02-02 --end SFO --end-date 2023-03-03 --alliance ALL
 ```
 Debugging information will print out, but the main outputs will looks something like this:
 ```
@@ -40,4 +40,4 @@ Note: If the value is -1, then the price could not be found
 
 ## Troubleshooting
 
-- Stalling when pulling prices. Selenium can be a hit or miss, so just press command + C to skip over that step to the next
+- Stalling when pulling prices. Selenium can be a hit or miss, so just press command + C to skip over that step to the next by providing data manually.
