@@ -1,0 +1,11 @@
+{
+  "NYC": ["JFK", "LGA", "EWR"],
+  "CHI": ["ORD", "MDW"],
+  "LON": ["LHR", "LGW", "LCY", "STN", "LTN", "SEN"],
+  "PAR": ["CDG", "ORY"],
+  "LA": ["LAX", "LGB", "ONT", "SNA", "BUR"],
+  "TOK": ["HND", "NRT"],
+  "SFO": ["SFO", "OAK", "SJC"],
+  "MIA" : ["MIA", "FLL"],
+  "SEA": ["SEA","PAE"]
+}

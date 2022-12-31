@@ -1,4 +1,5 @@
 import typing
+import json
 
 # average_price_calculator returns the average price of the top three flights
 def average_price_calculator(prices: typing.List[typing.Any]) -> float:
@@ -28,6 +29,10 @@ def average_price_calculator(prices: typing.List[typing.Any]) -> float:
 
 # returns a dictionary of the nearest airports to the start city
 def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dict[str, float]:
+  with open('distances.json') as f:
+    print("Loading distances.json")
+    iata_cities_distances_airports: typing.Dict[str, typing.Dict[str, float]] = json.load(f)
+    f.close()
   final_map = {}
   for city in cities:
     ## should be in the form xx (miles | km): city, country (IATA / ICAO) airport_name
@@ -54,10 +59,17 @@ def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dic
     # find the first bracket
     index_of_first_bracket = city.find('(')
     iata = city[index_of_first_bracket + 1: index_of_first_bracket + 4]
-    ## Using NYC and LON data to estimate distances in miles
+    # Using NYC and LON data to estimate distances in miles
+    ## TO-DO: This logic could be improved by using iata_cities data
     if final_distance < 55 or final_distance > 300:
       continue
     final_map[iata] = final_distance
+  if start_city_iata not in iata_cities_distances_airports:
+    print("Adding to database")
+    iata_cities_distances_airports[start_city_iata] = final_map
+    with open('distances.json', 'w') as f:
+      json.dump(iata_cities_distances_airports, f, indent=2)
+      f.close()
   return final_map
 
 ## TO-DO: Write test cases

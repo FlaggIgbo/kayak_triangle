@@ -8,9 +8,7 @@ A round trip flight can be represented as a graph with nodes A and B, and edges 
 
 ## Requirements
 (as of December 2022)
-- Python3
 - Chrome v108
-- OS X (not sure if this works on windows)
 
 ### Websites
 - Kayak
@@ -41,3 +39,13 @@ Note: If the value is -1, then the price could not be found
 ## Troubleshooting
 
 - Stalling when pulling prices. Selenium can be a hit or miss, so just press command + C to skip over that step to the next by providing data manually.
+
+## Files
+
+- flights.py - main script
+- README.md - this file
+- requirements.txt - required imports
+- .gitignore - files to ignore when pushing to github
+- iata_cities.json - json file of cities and their airport IATA codes
+- distances.json - json file of distances between cities and nearby airports
+- city_routes.json - json file of routes between cities and airports

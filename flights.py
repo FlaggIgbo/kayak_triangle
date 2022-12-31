@@ -6,17 +6,35 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import typing
 import json
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 from helpers import average_price_calculator, nearest_cities
 
+# Pull JSON files as dictionaries
+with open('iata_cities.json') as f:
+  print("Loading iata_cities.json")
+  iata_cities_to_airports: typing.Dict[str, typing.List[str]] = json.load(f)
+  f.close()
+
+with open('distances.json') as f:
+  print("Loading distances.json")
+  iata_cities_distances_airports: typing.Dict[str, typing.Dict[str, float]] = json.load(f)
+  f.close()
+
+with open('city_routes.json') as f:
+  print("Loading city_routes.json")
+  city_routes_alliance: typing.Dict[str, typing.Dict[str, typing.List[str]]] = json.load(f)
+  f.close()
+
 class FlightSearch:
-  def __init__(self, start: str, end: str, start_date: str, end_date: str, cabin: typing.Union[str, None], alliance: typing.Union[str, None]):
+  def __init__(self, start: str, end: str, start_date: str, end_date: str, cabin: typing.Union[str, None], alliance: str):
     self.start = start.upper() 
     self.end = end.upper()
     self.start_date = start_date
     self.end_date = end_date
     self.cabin = cabin if cabin else 'economy'
-    self.alliance = alliance if alliance else ''
+    self.alliance = alliance if alliance else 'None'
 
 # Parse inputs from command line
 parser = argparse.ArgumentParser(description='Extend round trip travel by adding one city')
@@ -39,10 +57,10 @@ def kayak_search_price(args: FlightSearch) -> float:
   elif args.alliance == 'ALL':
       final_url += '&fs=alliance=ONE_WORLD,SKY_TEAM,STAR_ALLIANCE'
   # The chromedriver version should match the version of chrome you have installed, otherwise you will get an error
-  driver = webdriver.Chrome('/chromedriver')
+  driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
   driver.get(final_url)
   # We do this because sometimes kayak will display an ad
-  print("Pulling prices")
+  print("Pulling prices for round_trip flight")
   try:
     time.sleep(5)
     prices = WebDriverWait(driver, 15).until(EC.presence_of_all_elements_located((By.XPATH, "//*[contains(text(), '$')]")))
@@ -56,17 +74,19 @@ def kayak_search_price(args: FlightSearch) -> float:
   return average_price
 
 # take the IATA code and find the nearest airports
-# TO-DO: Use a mongo DB to store information that has already been searched before
 def city_search(city_iata: str) -> typing.List[str]:
-  driver = webdriver.Chrome('/chromedriver')
+  if city_iata in iata_cities_distances_airports:
+    print("Pulling from distance.json database")
+    return iata_cities_distances_airports[city_iata]
+  driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
   driver.get('https://www.travelmath.com/nearest-airport/' + city_iata)
-  print("Finding nearest cities to " + city_iata)
+  print("Finding nearest airports to " + city_iata)
   try:
     cities = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'li')))
   except:
-    print("Warning: Couldn't find nearest cities")
+    print("Warning: Couldn't find nearest cities to " + city_iata + " \n")
     return []
-  cities_cleaned = [i.text for i in cities]
+  cities_cleaned: typing.List[str] = [i.text for i in cities]
   driver.quit()
   print("Done")
   return cities_cleaned
@@ -76,57 +96,103 @@ def kayak_search_price_explore_start(args: FlightSearch) -> float:
   pass
 
 # find cheap cities to fly to from the end city
-# TO-DO: accept city IATA codes (e.g. London)
 def explore_end_city(args: FlightSearch) -> typing.List[str]:
-  url = 'https://www.flightsfrom.com/api/airport/' + args.end + '?durationFrom=00.00&durationTo=190.00&priceFrom=0.00&priceTo=120.00&timeFrom=0&timeTo=600&from=' + args.end + '&classes=' + args.cabin
-  driver = webdriver.Chrome('/chromedriver')
-  driver.get(url)
-  text_json = json.loads(driver.find_element(By.TAG_NAME, 'body').text)
+  if args.end in city_routes_alliance:
+    print("Pulling from city_routes.json database for " + args.end + " \n")
+    return city_routes_alliance[args.end][args.alliance]
+  if args.end in iata_cities_to_airports:
+    print("Multiple Cities for " + args.end + " \n")
+    city_list = iata_cities_to_airports[args.end]
+  else:
+    city_list = [args.end]
   cities = []
-  try:
-    airport_routes = text_json['response']['routes']
-  except:
-      print("Problem pulling airport data")
-      return cities
-  cities = []
-  for index in airport_routes:
-    cities.append(airport_routes[index]['iata_to'])
-  print("Airport Data pulled")
-  return cities
+  for argEnd in city_list:
+    if argEnd in city_routes_alliance:
+      print("Pulling from database city_routes.json database for " + argEnd + " \n")
+      cities += city_routes_alliance[argEnd]['None']
+    else:
+      url = 'https://www.flightsfrom.com/api/airport/' + argEnd+ '?durationFrom=00.00&durationTo=190.00&priceFrom=0.00&priceTo=120.00&from=' + args.end + '&classes=' + args.cabin
+      driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+      driver.get(url)
+      text_json = json.loads(driver.find_element(By.TAG_NAME, 'body').text)
+      try:
+        airport_routes = text_json['response']['routes']
+      except:
+          print("Problem pulling airport data for " + argEnd + " \n")
+          continue
+      for index in airport_routes:
+        #Flight From API can be annoying
+        if isinstance(index, dict):
+          cities.append(index['iata_to'])
+        else:
+          cities.append(airport_routes[index]['iata_to'])
+      print("Airport Data pulled for " + argEnd + " \n")
+  final_list = list(set(cities))
+  ## Don't overwrite
+  if args.end in city_routes_alliance:
+    city_routes_alliance[args.end][args.alliance] += final_list
+  else:
+    city_routes_alliance[args.end] = {'None': final_list}
+  with open('city_routes.json', 'w') as f:
+    json.dump(city_routes_alliance, f, indent=2)
+    f.close()
+  return final_list
 
-# TO-DO: accept IATA city codes (e.g. NYC)
 def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str, float], alliance: str) -> typing.Dict[str, bool]:
-  url = 'https://www.flightsfrom.com/api/airport/' + airport_iata_from
-  driver = webdriver.Chrome('/chromedriver')
-  driver.get(url)
-  text_json = json.loads(driver.find_element(By.TAG_NAME, 'body').text)
   return_dict = {k: False for k in airport_iata_to_list}
-  try:
-    airport_routes = text_json['response']['routes']
-  except:
-    print("Problem pulling airport data")
-    return return_dict
-  for element in airport_routes:
-    print('looking at ' + element['iata_to'])
-    if element['iata_to'] in airport_iata_to_list:
-      if alliance == 'ALL':
-        for airlines in element['airlineroutes']:
-          if airlines['airline']['is_oneworld'] == '1' or airlines['airline']['is_skyteam'] == '1' or airlines['airline']['is_staralliance'] == '1':
-            return_dict[element['iata_to']] = True
-      elif alliance == 'ONE_WORLD':
-        for airlines in element['airlineroutes']:
-          if airlines['airline']['is_oneworld'] == '1':
-            return_dict[element['iata_to']] = True
-      elif alliance == 'SKY_TEAM':
-        for airlines in element['airlineroutes']:
-          if airlines['airline']['is_skyteam'] == '1':
-            return_dict[element['iata_to']] = True
-      elif alliance == 'STAR_ALLIANCE':
-        for airlines in element['airlineroutes']:
-          if airlines['airline']['is_staralliance'] == '1':
-            return_dict[element['iata_to']] = True
-      else:
-        return_dict[element['iata_to']] = True
+  if airport_iata_from in city_routes_alliance:
+    print("Pulling from city_routes.json database for " + airport_iata_from + " \n")
+    temp_list = city_routes_alliance[airport_iata_from][alliance]
+    for element in temp_list:
+      if element in return_dict:
+        return_dict[element] = True
+    ## Don't return yet, we need to check for longer direct routes
+  if airport_iata_from in iata_cities_to_airports:
+    print("Multiple Cities for " + args.end + " \n")
+    cities = iata_cities_to_airports[airport_iata_from]
+  else:
+    cities = [airport_iata_from]
+  for iata in cities:
+    url = 'https://www.flightsfrom.com/api/airport/' + iata
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+    driver.get(url)
+    text_json = json.loads(driver.find_element(By.TAG_NAME, 'body').text)
+    try:
+      airport_routes = text_json['response']['routes']
+    except:
+      print("Problem pulling airport data for " + iata + " \n")
+      continue
+    for element in airport_routes:
+      print('looking at ' + element['iata_to'])
+      if element['iata_to'] in airport_iata_to_list:
+        if alliance == 'ALL':
+          for airlines in element['airlineroutes']:
+            if airlines['airline']['is_oneworld'] == '1' or airlines['airline']['is_skyteam'] == '1' or airlines['airline']['is_staralliance'] == '1':
+              return_dict[element['iata_to']] = True
+        elif alliance == 'ONE_WORLD':
+          for airlines in element['airlineroutes']:
+            if airlines['airline']['is_oneworld'] == '1':
+              return_dict[element['iata_to']] = True
+        elif alliance == 'SKY_TEAM':
+          for airlines in element['airlineroutes']:
+            if airlines['airline']['is_skyteam'] == '1':
+              return_dict[element['iata_to']] = True
+        elif alliance == 'STAR_ALLIANCE':
+          for airlines in element['airlineroutes']:
+            if airlines['airline']['is_staralliance'] == '1':
+              return_dict[element['iata_to']] = True
+        else:
+          return_dict[element['iata_to']] = True
+  print("Adding to city_routes.json database")
+  temp_list = [k for k in return_dict if return_dict[k]]
+  # Don't overwrite
+  if airport_iata_from in city_routes_alliance:
+    city_routes_alliance[airport_iata_from][alliance] += temp_list
+  else:
+    city_routes_alliance[airport_iata_from] = {alliance: temp_list}
+  with open('city_routes.json', 'w') as f:
+    json.dump(city_routes_alliance, f, indent=2)
+    f.close()
   return return_dict
 
 # find price for multi-city itinerary
@@ -145,17 +211,18 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
         final_url += '&fs=alliance=' + args.alliance
     elif args.alliance == 'ALL':
         final_url += '&fs=alliance=ONE_WORLD,SKY_TEAM,STAR_ALLIANCE'
-    final_url += ';takeoff=__1800,2300'
+    ## TO-DO: account for time of day?
+    # final_url += ';takeoff=__1800,2300'
     # The chromedriver version should match the version of chrome you have installed, otherwise you will get an error
-    driver = webdriver.Chrome('/chromedriver')
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     driver.get(final_url)
     # We do this because sometimes kayak will display an ad
-    print("Pulling prices")
+    print("Pulling prices for multi-city flight")
     try:
       time.sleep(5)
       prices = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH, "//*[contains(text(), '$')]")))
     except:
-      print("Couldn't pull any prices")
+      print("Couldn't pull any prices for multi-city flight")
       var = input("Enter the price manually. Enter -1 if there is no price: ")
       all_prices.append(float(var))
       continue
@@ -166,7 +233,8 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
 
 # First search the price for a return
 args = FlightSearch(arguments.start, arguments.end, arguments.start_date, arguments.end_date, arguments.cabin, arguments.alliance)
-avg_price = kayak_search_price(args)
+#avg_price = kayak_search_price(args)
+avg_price = 0
 # Now generate list of possible cities
 # First generate by distance
 ## TO-DO: Too complex, let's just focus on the BCA case
