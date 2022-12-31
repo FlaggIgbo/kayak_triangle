@@ -76,6 +76,7 @@ def kayak_search_price_explore_start(args: FlightSearch) -> float:
   pass
 
 # find cheap cities to fly to from the end city
+# TO-DO: accept city IATA codes (e.g. London)
 def explore_end_city(args: FlightSearch) -> typing.List[str]:
   url = 'https://www.flightsfrom.com/api/airport/' + args.end + '?durationFrom=00.00&durationTo=190.00&priceFrom=0.00&priceTo=120.00&timeFrom=0&timeTo=600&from=' + args.end + '&classes=' + args.cabin
   driver = webdriver.Chrome('/chromedriver')
@@ -93,6 +94,7 @@ def explore_end_city(args: FlightSearch) -> typing.List[str]:
   print("Airport Data pulled")
   return cities
 
+# TO-DO: accept IATA city codes (e.g. NYC)
 def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str, float], alliance: str) -> typing.Dict[str, bool]:
   url = 'https://www.flightsfrom.com/api/airport/' + airport_iata_from
   driver = webdriver.Chrome('/chromedriver')
