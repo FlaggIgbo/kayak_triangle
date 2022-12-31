@@ -49,3 +49,9 @@ Note: If the value is -1, then the price could not be found
 - iata_cities.json - json file of cities and their airport IATA codes
 - distances.json - json file of distances between cities and nearby airports
 - city_routes.json - json file of routes between cities and airports
+
+## To-Do
+
+- [ ] Add test cases
+- [ ] Add more cities to iata_cities.json
+- [ ] Only search near cities for multi-city routes

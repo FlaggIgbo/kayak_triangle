@@ -9,7 +9,7 @@ import json
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-from helpers import average_price_calculator, nearest_cities
+from helpers import average_price_calculator, cleanup, nearest_cities
 
 # Pull JSON files as dictionaries
 with open('iata_cities.json') as f:
@@ -233,8 +233,7 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
 
 # First search the price for a return
 args = FlightSearch(arguments.start, arguments.end, arguments.start_date, arguments.end_date, arguments.cabin, arguments.alliance)
-#avg_price = kayak_search_price(args)
-avg_price = 0
+avg_price = kayak_search_price(args)
 # Now generate list of possible cities
 # First generate by distance
 ## TO-DO: Too complex, let's just focus on the BCA case
@@ -251,6 +250,8 @@ prices_B = kayak_search_price_multi_city(args, cities_from_B)
 dict_cities_B = dict(zip(cities_from_B.keys(), prices_B))
 prices_B_fly = kayak_search_price_multi_city(args, cities_fly_B)
 dict_cities_B_fly = dict(zip(cities_fly_B, prices_B_fly))
+## Need to cleanup in case
+cleanup()
 print('PLACES YOU CAN GET TO BY CAR OR TRAIN THEN FLY COMPARED TO AVERAGE')
 print('Note: If the value is -1, then the price could not be found')
 new_dict_cities_B = {}

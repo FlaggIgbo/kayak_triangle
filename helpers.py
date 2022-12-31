@@ -72,4 +72,18 @@ def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dic
       f.close()
   return final_map
 
+def cleanup():
+  print('CLEANING')
+  with open('city_routes.json') as f:
+    print("Loading city_routes.json")
+    city_routes_alliance: typing.Dict[str, typing.Dict[str, typing.List[str]]] = json.load(f)
+    f.close()
+  for city in city_routes_alliance:
+    for alliance in city_routes_alliance[city]:
+      city_routes_alliance[city][alliance] = list(set(city_routes_alliance[city][alliance]))
+  with open('city_routes.json', 'w') as f:
+    json.dump(city_routes_alliance, f, indent=2)
+    f.close()
+  print('CLEANED')
+
 ## TO-DO: Write test cases
