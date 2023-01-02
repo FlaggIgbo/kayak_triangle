@@ -54,5 +54,4 @@ Note: If the value is -1, then the price could not be found
 
 - [ ] Add test cases
 - [ ] Add more cities to iata_cities.json
-- [ ] Only search near cities for multi-city routes
 - [ ] Prevent same city searches (e.g. LGA to EWR or NYC to NYC)

@@ -7,5 +7,6 @@
   "TOK": ["HND", "NRT"],
   "SFO": ["SFO", "OAK", "SJC"],
   "MIA" : ["MIA", "FLL"],
-  "SEA": ["SEA","PAE"]
+  "SEA": ["SEA","PAE"],
+  "WAS": ["IAD", "DCA", "BWI"]
 }

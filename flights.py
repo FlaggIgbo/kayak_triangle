@@ -185,14 +185,6 @@ def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str,
           return_dict[element['iata_to']] = True
   print("Adding to city_routes.json database")
   temp_list = [k for k in return_dict if return_dict[k]]
-  # Don't overwrite
-  if airport_iata_from in city_routes_alliance:
-    city_routes_alliance[airport_iata_from][alliance] += temp_list
-  else:
-    city_routes_alliance[airport_iata_from] = {alliance: temp_list}
-  with open('city_routes.json', 'w') as f:
-    json.dump(city_routes_alliance, f, indent=2)
-    f.close()
   return return_dict
 
 # find price for multi-city itinerary
