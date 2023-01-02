@@ -97,7 +97,7 @@ def kayak_search_price_explore_start(args: FlightSearch) -> float:
 
 # find cheap cities to fly to from the end city
 def explore_end_city(args: FlightSearch) -> typing.List[str]:
-  if args.end in city_routes_alliance:
+  if args.end in city_routes_alliance and args.alliance in city_routes_alliance[args.end]:
     print("Pulling from city_routes.json database for " + args.end + " \n")
     return city_routes_alliance[args.end][args.alliance]
   if args.end in iata_cities_to_airports:
@@ -107,9 +107,9 @@ def explore_end_city(args: FlightSearch) -> typing.List[str]:
     city_list = [args.end]
   cities = []
   for argEnd in city_list:
-    if argEnd in city_routes_alliance:
+    if argEnd in city_routes_alliance and args.alliance in city_routes_alliance[argEnd]:
       print("Pulling from database city_routes.json database for " + argEnd + " \n")
-      cities += city_routes_alliance[argEnd]['None']
+      cities += city_routes_alliance[argEnd][args.alliance]
     else:
       url = 'https://www.flightsfrom.com/api/airport/' + argEnd+ '?durationFrom=00.00&durationTo=190.00&priceFrom=0.00&priceTo=120.00&from=' + args.end + '&classes=' + args.cabin
       driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
@@ -129,10 +129,10 @@ def explore_end_city(args: FlightSearch) -> typing.List[str]:
       print("Airport Data pulled for " + argEnd + " \n")
   final_list = list(set(cities))
   ## Don't overwrite
-  if args.end in city_routes_alliance:
+  if args.end in city_routes_alliance and args.alliance in city_routes_alliance[args.end]:
     city_routes_alliance[args.end][args.alliance] += final_list
   else:
-    city_routes_alliance[args.end] = {'None': final_list}
+    city_routes_alliance[args.end][args.alliance] = final_list
   with open('city_routes.json', 'w') as f:
     json.dump(city_routes_alliance, f, indent=2)
     f.close()
@@ -140,7 +140,7 @@ def explore_end_city(args: FlightSearch) -> typing.List[str]:
 
 def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str, float], alliance: str) -> typing.Dict[str, bool]:
   return_dict = {k: False for k in airport_iata_to_list}
-  if airport_iata_from in city_routes_alliance:
+  if airport_iata_from in city_routes_alliance and alliance in city_routes_alliance[airport_iata_from]:
     print("Pulling from city_routes.json database for " + airport_iata_from + " \n")
     temp_list = city_routes_alliance[airport_iata_from][alliance]
     for element in temp_list:
@@ -148,7 +148,7 @@ def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str,
         return_dict[element] = True
     ## Don't return yet, we need to check for longer direct routes
   if airport_iata_from in iata_cities_to_airports:
-    print("Multiple Cities for " + args.end + " \n")
+    print("Multiple Cities for " + airport_iata_from + " \n")
     cities = iata_cities_to_airports[airport_iata_from]
   else:
     cities = [airport_iata_from]
