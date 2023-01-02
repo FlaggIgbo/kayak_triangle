@@ -52,7 +52,7 @@ def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dic
     if index_of_colon == -1:
       continue
     # The distance should be in miles
-    if "km" in city[:index_of_colon]:
+    if "km:" in city[:index_of_colon]:
       final_distance *= 0.621371
     if city[index_of_colon + 2: index_of_colon + 5].upper() == start_city_iata:
       continue
