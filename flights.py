@@ -65,7 +65,7 @@ def kayak_search_price(args: FlightSearch) -> float:
     time.sleep(5)
     prices = WebDriverWait(driver, 15).until(EC.presence_of_all_elements_located((By.XPATH, "//*[contains(text(), '$')]")))
   except:
-    print("Couldn't pull any prices \n")
+    print("\nCouldn't pull any prices \n")
     var = input("Enter the price manually. Enter 0 if there is no price: ")
     return float(var)
   average_price = average_price_calculator(prices)
@@ -90,10 +90,6 @@ def city_search(city_iata: str) -> typing.List[str]:
   driver.quit()
   print("Done")
   return cities_cleaned
-
-# TO-DO
-def kayak_search_price_explore_start(args: FlightSearch) -> float:
-  pass
 
 # find cheap cities to fly to from the end city
 def explore_end_city(args: FlightSearch) -> typing.List[str]:
@@ -131,8 +127,10 @@ def explore_end_city(args: FlightSearch) -> typing.List[str]:
   ## Don't overwrite
   if args.end in city_routes_alliance and args.alliance in city_routes_alliance[args.end]:
     city_routes_alliance[args.end][args.alliance] += final_list
-  else:
+  elif args.end in city_routes_alliance:
     city_routes_alliance[args.end][args.alliance] = final_list
+  else:
+    city_routes_alliance[args.end] = {args.alliance : final_list}
   with open('city_routes.json', 'w') as f:
     json.dump(city_routes_alliance, f, indent=2)
     f.close()
@@ -214,7 +212,7 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
       time.sleep(5)
       prices = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.XPATH, "//*[contains(text(), '$')]")))
     except:
-      print("Couldn't pull any prices for multi-city flight")
+      print("\nCouldn't pull any prices for multi-city flight \n")
       var = input("Enter the price manually. Enter -1 if there is no price: ")
       all_prices.append(float(var))
       continue
@@ -228,14 +226,11 @@ args = FlightSearch(arguments.start, arguments.end, arguments.start_date, argume
 avg_price = kayak_search_price(args)
 # Now generate list of possible cities
 # First generate by distance
-## TO-DO: Too complex, let's just focus on the BCA case
-# cities_A = city_search(args.start)
-# cities_from_A = nearest_cities(cities_A, args.start)
+## TO-DO: Too complex to consider ACB, let's just focus on the BCA case
 cities_B = city_search(args.end)
 cities_from_B = nearest_cities(cities_B, args.end)
 # Now find places you can fly to from A and B
 ## TO-DO: To avoid complexity, let's focus on the BCA case where those travels occur on the same day
-# cities_fly_A = kayak_search_price_explore_start(args)
 cities_fly_B = explore_end_city(args)
 prices_B = kayak_search_price_multi_city(args, cities_from_B)
 # display as dictionary
