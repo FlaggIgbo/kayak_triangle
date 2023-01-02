@@ -48,7 +48,7 @@ Note: If the value is -1, then the price could not be found
 - .gitignore - files to ignore when pushing to github
 - iata_cities.json - json file of cities and their airport IATA codes
 - distances.json - json file of distances between cities and nearby airports
-- city_routes.json - json file of routes between cities and airports
+- city_routes.json - json file of routes between cities and nearby airports
 
 ## To-Do
 
