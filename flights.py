@@ -245,7 +245,6 @@ dict_cities_B_fly = dict(zip(cities_fly_B, prices_B_fly))
 ## Need to cleanup in case
 cleanup()
 print('PLACES YOU CAN GET TO BY CAR OR TRAIN THEN FLY COMPARED TO AVERAGE')
-print('Note: If the value is -1, then the price could not be found')
 new_dict_cities_B = {}
 for key, value in dict_cities_B.items():
   if value == -1 or max(value - avg_price, 0) > 200:
@@ -253,7 +252,6 @@ for key, value in dict_cities_B.items():
   new_dict_cities_B[key] = max(value - avg_price, 0)
 print(new_dict_cities_B)
 print('PLACES YOU CAN FLY TO THEN FLY OUT OF COMPARED TO AVERAGE')
-print('Note: If the value is -1, then the price could not be found')
 new_dict_cities_B_fly = {}
 for key, value in dict_cities_B_fly.items():
   if value == -1 or max(value-avg_price, 0) > 200:
