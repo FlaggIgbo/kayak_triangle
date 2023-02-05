@@ -29,48 +29,24 @@ def average_price_calculator(prices: typing.List[typing.Any]) -> float:
 
 # returns a dictionary of the nearest airports to the start city
 def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dict[str, float]:
-  with open('distances.json') as f:
-    print("Loading distances.json")
-    iata_cities_distances_airports: typing.Dict[str, typing.Dict[str, float]] = json.load(f)
-    f.close()
-  final_map = {}
-  for city in cities:
-    ## should be in the form xx (miles | km): city, country (IATA / ICAO) airport_name
-    # TO-DO: use regex
-    numbers = '0123456789'
-    distance = ''
-    for char in city:
-        if char in numbers:
-            distance += char
-        else:
-          break
-    if not distance:
-      continue
-    final_distance = float(distance)
-    # find the : character
-    index_of_colon = city.find(':')
-    if index_of_colon == -1:
-      continue
-    # The distance should be in miles
-    if "km:" in city[:index_of_colon]:
-      final_distance *= 0.621371
-    if city[index_of_colon + 2: index_of_colon + 5].upper() == start_city_iata:
-      continue
-    # find the first bracket
-    index_of_first_bracket = city.find('(')
-    iata = city[index_of_first_bracket + 1: index_of_first_bracket + 4]
-    # Using NYC and LON data to estimate distances in miles
-    ## TO-DO: This logic could be improved by using iata_cities data
-    if final_distance < 55 or final_distance > 300:
-      continue
-    final_map[iata] = final_distance
-  if start_city_iata not in iata_cities_distances_airports:
-    print("Adding to database")
-    iata_cities_distances_airports[start_city_iata] = final_map
+    with open('distances.json', 'r') as f:
+        iata_cities_distances = json.load(f)
+    final_map = {}
+    for city in cities:
+        # Extract the distance from the string
+        distance = float(city.split()[0])
+        # Convert km to miles if necessary
+        if 'km' in city:
+            distance *= 0.621371
+        iata = city[-7:-4]
+        # Skip if the city is the start city or the distance is not within the expected range
+        if iata == start_city_iata or distance < 55 or distance > 300:
+            continue
+        final_map[iata] = distance
+    iata_cities_distances[start_city_iata] = final_map
     with open('distances.json', 'w') as f:
-      json.dump(iata_cities_distances_airports, f, indent=2)
-      f.close()
-  return final_map
+        json.dump(iata_cities_distances, f, indent=2)
+    return final_map
 
 def cleanup():
   print('CLEANING')

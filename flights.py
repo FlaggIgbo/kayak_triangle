@@ -75,66 +75,61 @@ def kayak_search_price(args: FlightSearch) -> float:
 
 # take the IATA code and find the nearest airports
 def city_search(city_iata: str) -> typing.List[str]:
-  if city_iata in iata_cities_distances_airports:
-    print("Pulling from distance.json database")
-    return iata_cities_distances_airports[city_iata]
-  driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-  driver.get('https://www.travelmath.com/nearest-airport/' + city_iata)
-  print("Finding nearest airports to " + city_iata)
-  try:
-    cities = WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, 'li')))
-  except:
-    print("Warning: Couldn't find nearest cities to " + city_iata + " \n")
-    return []
-  cities_cleaned: typing.List[str] = [i.text for i in cities]
-  driver.quit()
-  print("Done")
-  return cities_cleaned
+    if city_iata in iata_cities_distances_airports:
+        print("Pulling from distance.json database")
+        return iata_cities_distances_airports[city_iata]
+    
+    driver = webdriver.Chrome(service=webdriver.Service(ChromeDriverManager().install()))
+    driver.get(f'https://www.travelmath.com/nearest-airport/{city_iata}')
+    print(f"Finding nearest airports to {city_iata}")
+
+    try:
+        cities = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.TAG_NAME, 'li'))
+        )
+        cities_cleaned = [i.text for i in cities]
+    except:
+        print(f"Warning: Couldn't find nearest cities to {city_iata}")
+        cities_cleaned = []
+    finally:
+        driver.quit()
+        print("Done")
+        
+    return cities_cleaned
 
 # find cheap cities to fly to from the end city
 def explore_end_city(args: FlightSearch) -> typing.List[str]:
-  if args.end in city_routes_alliance and args.alliance in city_routes_alliance[args.end]:
-    print("Pulling from city_routes.json database for " + args.end + " \n")
-    return city_routes_alliance[args.end][args.alliance]
-  if args.end in iata_cities_to_airports:
-    print("Multiple Cities for " + args.end + " \n")
-    city_list = iata_cities_to_airports[args.end]
-  else:
-    city_list = [args.end]
-  cities = []
-  for argEnd in city_list:
-    if argEnd in city_routes_alliance and args.alliance in city_routes_alliance[argEnd]:
-      print("Pulling from database city_routes.json database for " + argEnd + " \n")
-      cities += city_routes_alliance[argEnd][args.alliance]
-    else:
-      url = 'https://www.flightsfrom.com/api/airport/' + argEnd+ '?durationFrom=00.00&durationTo=190.00&priceFrom=0.00&priceTo=120.00&from=' + args.end + '&classes=' + args.cabin
-      driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-      driver.get(url)
-      text_json = json.loads(driver.find_element(By.TAG_NAME, 'body').text)
-      try:
-        airport_routes = text_json['response']['routes']
-      except:
-          print("Problem pulling airport data for " + argEnd + " \n")
-          continue
-      for index in airport_routes:
-        #Flight From API can be annoying
-        if isinstance(index, dict):
-          cities.append(index['iata_to'])
+    # Check if the city and alliance data exists in city_routes_alliance
+    if args.end in city_routes_alliance and args.alliance in city_routes_alliance[args.end]:
+        print(f"Pulling from city_routes.json database for {args.end}")
+        return city_routes_alliance[args.end][args.alliance]
+    
+    city_list = iata_cities_to_airports.get(args.end, [args.end])
+    cities = []
+    for end_city in city_list:
+        if end_city in city_routes_alliance and args.alliance in city_routes_alliance[end_city]:
+            print(f"Pulling from city_routes.json database for {end_city}")
+            cities += city_routes_alliance[end_city][args.alliance]
         else:
-          cities.append(airport_routes[index]['iata_to'])
-      print("Airport Data pulled for " + argEnd + " \n")
-  final_list = list(set(cities))
-  ## Don't overwrite
-  if args.end in city_routes_alliance and args.alliance in city_routes_alliance[args.end]:
-    city_routes_alliance[args.end][args.alliance] += final_list
-  elif args.end in city_routes_alliance:
+            url = f'https://www.flightsfrom.com/api/airport/{end_city}?durationFrom=00.00&durationTo=190.00&priceFrom=0.00&priceTo=120.00&from={args.end}&classes={args.cabin}'
+            try:
+                response = requests.get(url).json()
+                airport_routes = response['response']['routes']
+            except:
+                print(f"Problem pulling airport data for {end_city}")
+                continue
+
+            cities += [route['iata_to'] if isinstance(route, dict) else route[index]['iata_to'] for route in airport_routes]
+            print(f"Airport Data pulled for {end_city}")
+
+    final_list = list(set(cities))
+    city_routes_alliance.setdefault(args.end, {})
     city_routes_alliance[args.end][args.alliance] = final_list
-  else:
-    city_routes_alliance[args.end] = {args.alliance : final_list}
-  with open('city_routes.json', 'w') as f:
-    json.dump(city_routes_alliance, f, indent=2)
-    f.close()
-  return final_list
+
+    with open('city_routes.json', 'w') as f:
+        json.dump(city_routes_alliance, f, indent=2)
+
+    return final_list
 
 def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str, float], alliance: str) -> typing.Dict[str, bool]:
   return_dict = {k: False for k in airport_iata_to_list}
