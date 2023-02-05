@@ -5,7 +5,7 @@ import json
 def average_price(prices: List[Any]) -> float:
     average_price = 0
     count = 0
-    for i in range(min(3, len(prices))):
+    for i in range(min(5, len(prices))):
       # Remove the $ sign from the front
         price = prices[i].text[1:].replace(',', '')
         if not price:
