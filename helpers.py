@@ -1,31 +1,25 @@
 import typing
 import json
 
-# average_price_calculator returns the average price of the top three flights
-def average_price_calculator(prices: typing.List[typing.Any]) -> float:
-  if len(prices) == 0:
-    raise Exception('no flights returned')
-  average_price = 0
-  counter = 0
-  for i in range(min(5, len(prices))):
-    # remove the dollar sign from the front
-    text_without_dollar_sign = prices[i].text[1:].replace(',', '')
-    if len(text_without_dollar_sign) == 0:
-      print("Warning: No price found for a data point, Skipping")
-      continue
-    text_to_number = float(text_without_dollar_sign)
-    if text_to_number > 10000:
-      ## TO-DO
-      # Noticed Kayak occasionally returns prices that are too high (e.g. air taxi)
-      print("Warning: Price is too high, Skipping")
-      continue
-    counter += 1
-    average_price += text_to_number
-    print("Price found")
-  if counter == 0:
-    return -1
-  average_price /= counter
-  return average_price
+# average_price_calculator returns the average price of the top five flights
+def average_price(prices: List[Any]) -> float:
+    average_price = 0
+    count = 0
+    for i in range(min(3, len(prices))):
+      # Remove the $ sign from the front
+        price = prices[i].text[1:].replace(',', '')
+        if not price:
+            print("Warning: No price found for a data point, Skipping")
+            continue
+        price = float(price)
+        # TO-DO
+        # Noticed Kayak occasionally returns prices that are too high (e.g. air taxi)
+        if price <= 10000:
+            count += 1
+            average_price += price
+    if not count:
+        return -1
+    return average_price / count
 
 # returns a dictionary of the nearest airports to the start city
 def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dict[str, float]:
