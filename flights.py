@@ -133,18 +133,10 @@ def explore_end_city(args: FlightSearch) -> typing.List[str]:
 
 def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str, float], alliance: str) -> typing.Dict[str, bool]:
   return_dict = {k: False for k in airport_iata_to_list}
-  if airport_iata_from in city_routes_alliance and alliance in city_routes_alliance[airport_iata_from]:
-    print("Pulling from city_routes.json database for " + airport_iata_from + " \n")
-    temp_list = city_routes_alliance[airport_iata_from][alliance]
-    for element in temp_list:
-      if element in return_dict:
-        return_dict[element] = True
-    ## Don't return yet, we need to check for longer direct routes
-  if airport_iata_from in iata_cities_to_airports:
-    print("Multiple Cities for " + airport_iata_from + " \n")
-    cities = iata_cities_to_airports[airport_iata_from]
-  else:
-    cities = [airport_iata_from]
+  temp_list = city_routes_alliance.get(airport_iata_from, {}).get(alliance, [])
+  for element in temp_list:
+    return_dict[element] = True
+  cities = iata_cities_to_airports.get(airport_iata_from, [airport_iata_from])
   for iata in cities:
     url = 'https://www.flightsfrom.com/api/airport/' + iata
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
@@ -158,23 +150,16 @@ def direct_routes(airport_iata_from: str, airport_iata_to_list: typing.Dict[str,
     for element in airport_routes:
       print('looking at ' + element['iata_to'])
       if element['iata_to'] in airport_iata_to_list:
-        if alliance == 'ALL':
-          for airlines in element['airlineroutes']:
-            if airlines['airline']['is_oneworld'] == '1' or airlines['airline']['is_skyteam'] == '1' or airlines['airline']['is_staralliance'] == '1':
-              return_dict[element['iata_to']] = True
-        elif alliance == 'ONE_WORLD':
-          for airlines in element['airlineroutes']:
-            if airlines['airline']['is_oneworld'] == '1':
-              return_dict[element['iata_to']] = True
-        elif alliance == 'SKY_TEAM':
-          for airlines in element['airlineroutes']:
-            if airlines['airline']['is_skyteam'] == '1':
-              return_dict[element['iata_to']] = True
-        elif alliance == 'STAR_ALLIANCE':
-          for airlines in element['airlineroutes']:
-            if airlines['airline']['is_staralliance'] == '1':
-              return_dict[element['iata_to']] = True
-        else:
+        found = False
+        for airlines in element['airlineroutes']:
+          if (alliance == 'ALL' and 
+             (airlines['airline']['is_oneworld'] == '1' or airlines['airline']['is_skyteam'] == '1' or airlines['airline']['is_staralliance'] == '1')
+             ) or (alliance == 'ONE_WORLD' and airlines['airline']['is_oneworld'] == '1') or 
+             (alliance == 'SKY_TEAM' and airlines['airline']['is_skyteam'] == '1') or 
+             (alliance == 'STAR_ALLIANCE' and airlines['airline']['is_staralliance'] == '1'):
+            found = True
+            break
+        if found or alliance == 'NONE':
           return_dict[element['iata_to']] = True
   print("Adding to city_routes.json database")
   temp_list = [k for k in return_dict if return_dict[k]]
