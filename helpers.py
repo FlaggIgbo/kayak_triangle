@@ -34,7 +34,11 @@ def nearest_cities(cities: typing.List[str], start_city_iata: str) -> typing.Dic
     final_map = {}
     for city in cities:
         # Extract the distance from the string
-        distance = float(city.split()[0])
+        # should be in the form xx (miles | km): city, country (IATA / ICAO) airport_name
+        temp_distance = city.split()[0]
+        if not temp_distance or temp_distance.isalpha(): 
+            continue
+        distance = float(temp_distance)
         # Convert km to miles if necessary
         if 'km' in city:
             distance *= 0.621371

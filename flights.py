@@ -186,6 +186,11 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
   all_prices: typing.List[float] = []
   ## figure out which cities have direct flights to the start city
   new_cities = direct_routes(args.start, cities, args.alliance)
+  
+  # Initialize the webdriver once, outside of the loop
+  # The chromedriver version should match the version of chrome you have installed, otherwise you will get an error
+  driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+  
   for c, value in new_cities.items():
     if not value:
       all_prices.append(-1)
@@ -198,8 +203,6 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
         final_url += '&fs=alliance=ONE_WORLD,SKY_TEAM,STAR_ALLIANCE'
     ## TO-DO: account for time of day?
     # final_url += ';takeoff=__1800,2300'
-    # The chromedriver version should match the version of chrome you have installed, otherwise you will get an error
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
     driver.get(final_url)
     # We do this because sometimes kayak will display an ad
     print("Pulling prices for multi-city flight")
@@ -213,7 +216,8 @@ def kayak_search_price_multi_city(args: FlightSearch, cities: typing.Dict[str, f
       continue
     average_price = average_price_calculator(prices)
     all_prices.append(average_price)
-    driver.quit()
+  # Quit the webdriver once, outside of the loop
+  driver.quit()
   return all_prices
 
 # First search the price for a return
